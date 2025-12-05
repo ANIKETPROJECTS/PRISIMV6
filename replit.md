@@ -136,10 +136,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (December 2025)
 
-### User Profile Modal
-- Added user profile modal accessible by clicking the avatar in the sidebar footer
-- Supports viewing and editing profile information (full name, email, mobile)
-- Security PIN update functionality with validation
+### Header UI Improvements
+- **Alignment**: Page title on left, Day/Time + Date + Company selector on right with clean spacing
+- **Light Blue Background**: Soft gradient background (light mode: light blue, dark mode: subtle blue-gray)
+- **Smooth Hover Effects**: Interactive elements animate subtly on hover (0.2s transition, -1px upward movement)
+- CSS class: `header-light-blue` for the gradient, `smooth-hover` for interactive elements
+
+### User Profile Modal (View-Only)
+- Clicking the user avatar opens a read-only profile view
+- Shows: Username, Full Name, Role, Company, Mobile, Email, Status, Last Login
+- Two buttons: "Close" and "Edit Profile" (redirects to User Management page at /utility/users)
+- No inline editing - all profile changes must be made through User Management
 - Located in `client/src/components/user-profile-modal.tsx`
 
 ### Booking Calendar Quick Add
