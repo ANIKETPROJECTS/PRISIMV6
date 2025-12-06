@@ -4,6 +4,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { useSearch, useLocation } from "wouter";
 import { Plus, Trash2, FileText, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,11 +60,14 @@ type ChalanFormValues = z.infer<typeof chalanFormSchema>;
 
 export default function ChalanPage() {
   const { toast } = useToast();
+  const searchString = useSearch();
+  const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewingChalan, setViewingChalan] = useState<ChalanWithItems | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingChalan, setDeletingChalan] = useState<ChalanWithItems | null>(null);
+  const [urlParamsProcessed, setUrlParamsProcessed] = useState(false);
 
   const { data: chalans = [], isLoading } = useQuery<ChalanWithItems[]>({
     queryKey: ["/api/chalans"],
@@ -95,6 +99,27 @@ export default function ChalanPage() {
     queryKey: [`/api/projects?customerId=${selectedCustomerId}`],
     enabled: !!selectedCustomerId,
   });
+
+  useEffect(() => {
+    if (urlParamsProcessed || customers.length === 0) return;
+    
+    const params = new URLSearchParams(searchString);
+    const customerId = params.get("customerId");
+    const projectId = params.get("projectId");
+    
+    if (customerId) {
+      form.setValue("customerId", customerId);
+      setDialogOpen(true);
+      setUrlParamsProcessed(true);
+      setLocation("/chalan", { replace: true });
+      
+      if (projectId) {
+        setTimeout(() => {
+          form.setValue("projectId", projectId);
+        }, 100);
+      }
+    }
+  }, [searchString, customers, urlParamsProcessed, form, setLocation]);
 
   const createMutation = useMutation({
     mutationFn: async (data: ChalanFormValues) => {

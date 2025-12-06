@@ -60,8 +60,8 @@ interface MenuSection {
 const operationsItems: MenuItem[] = [
   { title: "Booking", url: "/", icon: Calendar },
   { title: "Leaves Entry", url: "/leaves", icon: UserMinus },
-  { title: "Chalan Entry", url: "/chalan", icon: FileText, roles: ["admin", "gst"] },
-  { title: "Chalan Revise", url: "/chalan/revise", icon: ClipboardList, roles: ["admin", "gst"] },
+  { title: "Chalan Entry", url: "/chalan", icon: FileText, roles: ["admin"] },
+  { title: "Chalan Revise", url: "/chalan/revise", icon: ClipboardList, roles: ["admin"] },
 ];
 
 const mastersItems: MenuItem[] = [
@@ -75,7 +75,7 @@ const reportsItems: MenuItem[] = [
   { title: "Conflict Report", url: "/reports/conflict", icon: AlertTriangle },
   { title: "Booking Report", url: "/reports/booking", icon: CalendarDays },
   { title: "Editor Report", url: "/reports/editor", icon: UserCog },
-  { title: "Chalan Report", url: "/reports/chalan", icon: FileSpreadsheet, roles: ["admin", "gst"] },
+  { title: "Chalan Report", url: "/reports/chalan", icon: FileSpreadsheet, roles: ["admin"] },
 ];
 
 const utilityItems: MenuItem[] = [

@@ -44,7 +44,7 @@ const ROLES = [
   { value: "non_gst", label: "Non-GST", description: "Non-GST billing access" },
 ];
 
-const userFormSchema = z.object({
+const createUserFormSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(4, "Password must be at least 4 characters"),
   securityPin: z.string().min(4, "Security PIN must be at least 4 characters"),
@@ -53,7 +53,20 @@ const userFormSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-type UserFormValues = z.infer<typeof userFormSchema>;
+const editUserFormSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().optional().refine((val) => !val || val.length >= 4, {
+    message: "Password must be at least 4 characters if provided",
+  }),
+  securityPin: z.string().optional().refine((val) => !val || val.length >= 4, {
+    message: "Security PIN must be at least 4 characters if provided",
+  }),
+  role: z.enum(["admin", "gst", "non_gst"]),
+  companyId: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+type UserFormValues = z.infer<typeof createUserFormSchema>;
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -73,7 +86,7 @@ export default function UsersPage() {
   });
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
+    resolver: zodResolver(editingUser ? editUserFormSchema : createUserFormSchema),
     defaultValues: {
       username: "",
       password: "",
@@ -107,10 +120,19 @@ export default function UsersPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: UserFormValues) => {
-      return apiRequest("PATCH", `/api/users/${editingUser?.id}`, {
-        ...data,
+      const payload: Record<string, any> = {
+        username: data.username,
+        role: data.role,
         companyId: data.companyId ? parseInt(data.companyId) : null,
-      });
+        isActive: data.isActive,
+      };
+      if (data.password && data.password.length > 0) {
+        payload.password = data.password;
+      }
+      if (data.securityPin && data.securityPin.length > 0) {
+        payload.securityPin = data.securityPin;
+      }
+      return apiRequest("PATCH", `/api/users/${editingUser?.id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
