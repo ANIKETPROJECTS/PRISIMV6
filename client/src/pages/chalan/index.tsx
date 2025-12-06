@@ -507,12 +507,13 @@ export default function ChalanPage() {
       </Dialog>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 print:max-w-none print:m-0 print:shadow-none">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
           {viewingChalan && (
             <ChalanInvoice 
               chalan={viewingChalan} 
               onClose={() => setViewDialogOpen(false)}
               showActions={true}
+              viewOnly={true}
             />
           )}
         </DialogContent>

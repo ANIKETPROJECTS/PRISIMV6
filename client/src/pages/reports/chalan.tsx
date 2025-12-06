@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { FileSpreadsheet, Download, Eye, Printer } from "lucide-react";
+import { FileSpreadsheet, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,17 +16,13 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/header";
 import { DataTable, Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { ChalanInvoice } from "@/components/chalan-invoice";
 import type { ChalanWithItems, Customer } from "@shared/schema";
 
 export default function ChalanReportPage() {
@@ -76,8 +72,10 @@ export default function ChalanReportPage() {
     setViewDialogOpen(true);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = (chalan: ChalanWithItems) => {
+    setViewingChalan(chalan);
+    setViewDialogOpen(true);
+    setTimeout(() => window.print(), 100);
   };
 
   const totalAmount = filteredChalans.reduce((sum, c) => sum + (c.totalAmount || 0), 0);
@@ -255,14 +253,24 @@ export default function ChalanReportPage() {
                 data={filteredChalans}
                 searchPlaceholder="Search chalans..."
                 actions={(row) => (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewChalan(row)}
-                    data-testid={`button-view-chalan-${row.id}`}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleViewChalan(row)}
+                      data-testid={`button-view-chalan-${row.id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDownloadPDF(row)}
+                      data-testid={`button-download-pdf-${row.id}`}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               />
             )}
@@ -271,100 +279,15 @@ export default function ChalanReportPage() {
       </div>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-3xl print:max-w-none print:m-0 print:shadow-none">
-          <DialogHeader className="print:hidden">
-            <DialogTitle>Chalan Details</DialogTitle>
-            <DialogDescription>
-              View and print chalan details.
-            </DialogDescription>
-          </DialogHeader>
-
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 print:max-w-none print:m-0 print:shadow-none">
           {viewingChalan && (
-            <div className="space-y-6 print:p-8">
-              <div className="text-center border-b pb-4">
-                <h2 className="text-2xl font-bold">CHALAN</h2>
-                <p className="text-muted-foreground">{viewingChalan.chalanNumber}</p>
-                {viewingChalan.isCancelled && (
-                  <Badge variant="destructive" className="mt-2">CANCELLED</Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Customer</p>
-                  <p className="font-medium">{viewingChalan.customer?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Project</p>
-                  <p className="font-medium">{viewingChalan.project?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-mono">{format(new Date(viewingChalan.chalanDate), "PPP")}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-medium mb-3">Items</h4>
-                <table className="w-full border">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="text-left p-2 border">Description</th>
-                      <th className="text-right p-2 border w-20">Qty</th>
-                      <th className="text-right p-2 border w-28">Rate</th>
-                      <th className="text-right p-2 border w-28">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {viewingChalan.items?.map((item, index) => (
-                      <tr key={index}>
-                        <td className="p-2 border">{item.description}</td>
-                        <td className="text-right p-2 border font-mono">{item.quantity}</td>
-                        <td className="text-right p-2 border font-mono">Rs. {item.rate}</td>
-                        <td className="text-right p-2 border font-mono">Rs. {item.amount}</td>
-                      </tr>
-                    ))}
-                    <tr className="font-bold bg-muted">
-                      <td colSpan={3} className="text-right p-2 border">Total</td>
-                      <td className="text-right p-2 border font-mono">
-                        Rs. {(viewingChalan.totalAmount || 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {viewingChalan.cancelReason && (
-                <div className="p-4 bg-destructive/10 rounded-md">
-                  <p className="text-sm font-medium text-destructive">Cancellation Reason</p>
-                  <p className="text-sm">{viewingChalan.cancelReason}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-5 gap-4 pt-8">
-                {["Prepared By", "Checked By", "Approved By", "Received By", "Authority"].map(
-                  (label) => (
-                    <div key={label} className="text-center">
-                      <div className="border-t border-foreground pt-2 mt-12" />
-                      <p className="text-xs text-muted-foreground">{label}</p>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
+            <ChalanInvoice 
+              chalan={viewingChalan} 
+              onClose={() => setViewDialogOpen(false)}
+              showActions={true}
+              viewOnly={false}
+            />
           )}
-
-          <DialogFooter className="print:hidden gap-2">
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-              Close
-            </Button>
-            <Button onClick={handlePrint} data-testid="button-print-chalan">
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

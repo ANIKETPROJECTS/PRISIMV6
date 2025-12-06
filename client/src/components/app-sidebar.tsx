@@ -38,6 +38,16 @@ import {
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/auth-context";
 import { UserProfileModal } from "@/components/user-profile-modal";
 import { cn } from "@/lib/utils";
@@ -172,7 +182,8 @@ function SidebarNavGroup({
 export function AppSidebar() {
   const { user, company, logout } = useAuth();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["Operations"]));
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["Operations", "Masters", "Reports", "Utility"]));
 
   const userRole = (user?.role as UserRole) || "non_gst";
   const filteredSections = filterSectionsByRole(menuSections, userRole);
@@ -261,7 +272,7 @@ export function AppSidebar() {
           <SidebarMenuButton
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={logout}
+            onClick={() => setLogoutDialogOpen(true)}
             data-testid="button-logout"
           >
             <LogOut className="h-4 w-4" />
@@ -273,6 +284,23 @@ export function AppSidebar() {
         open={profileModalOpen} 
         onOpenChange={setProfileModalOpen} 
       />
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout? You will need to sign in again to access the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-logout">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={logout} data-testid="button-confirm-logout">
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 }

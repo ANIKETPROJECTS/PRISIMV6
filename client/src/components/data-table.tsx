@@ -48,7 +48,7 @@ export function DataTable<T extends Record<string, any>>({
   actions,
   exportable = false,
   onExport,
-  pageSize = 10,
+  pageSize = 5,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

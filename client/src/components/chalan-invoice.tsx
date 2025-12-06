@@ -10,9 +10,10 @@ interface ChalanInvoiceProps {
   chalan: ChalanWithItems;
   onClose?: () => void;
   showActions?: boolean;
+  viewOnly?: boolean;
 }
 
-export function ChalanInvoice({ chalan, onClose, showActions = true }: ChalanInvoiceProps) {
+export function ChalanInvoice({ chalan, onClose, showActions = true, viewOnly = false }: ChalanInvoiceProps) {
   const { company } = useAuth();
 
   const handlePrint = () => {
@@ -28,16 +29,20 @@ export function ChalanInvoice({ chalan, onClose, showActions = true }: ChalanInv
       {showActions && (
         <div className="flex items-center justify-end gap-2 p-4 border-b print:hidden">
           <Button variant="outline" onClick={onClose} data-testid="button-close-invoice">
-            Close
+            Cancel
           </Button>
-          <Button variant="outline" onClick={handleDownloadPDF} data-testid="button-download-pdf">
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
-          <Button onClick={handlePrint} data-testid="button-print-invoice">
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
+          {!viewOnly && (
+            <>
+              <Button variant="outline" onClick={handleDownloadPDF} data-testid="button-download-pdf">
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button onClick={handlePrint} data-testid="button-print-invoice">
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+            </>
+          )}
         </div>
       )}
 
