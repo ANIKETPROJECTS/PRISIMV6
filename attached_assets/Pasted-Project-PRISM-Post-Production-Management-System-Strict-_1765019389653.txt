@@ -1,0 +1,315 @@
+Project: PRISM – Post-Production Management System
+Strict Global Rules:
+
+❌ Do NOT change dashboard layout structure
+
+❌ Do NOT break existing workflows
+
+❌ Do NOT change existing database tables unless required
+
+✅ Only enhance logic, UI behavior, permissions, scrolling, pagination, demo data
+
+✅ Maintain professional light blue + dark header color balance
+
+✅ 1. BOOKING FORM – CLIENT ROOM & CLIENT EDITOR SUPPORT
+✅ Required Logic:
+
+While creating a new booking, in:
+
+Room dropdown
+
+Editor dropdown
+
+✅ Show both system + client-owned options:
+
+Internal Room / Internal Editor
+
+Client Room
+
+Client Editor
+
+✅ Each option must be clearly labeled:
+
+(Client Room)
+
+(Client Editor)
+
+✅ Scenarios to support:
+
+Client Has	Room	Editor
+Only Editor	❌	✅
+Only Room	✅	❌
+Both	✅	✅
+None	✅	✅
+
+✅ If a client room/editor is selected:
+
+Auto-fetch and bind that client’s room/editor details
+
+Save directly in the booking record
+
+Do NOT require extra mapping later
+
+✅ No validation conflict should block saving.
+
+✅ 2. SIDEBAR – DEFAULT OPEN + DARK HEADER WITH CLEAR TEXT
+
+✅ By default:
+
+Operations = Open
+
+Master = Open
+
+Reports = Open
+
+Utility = Open
+
+✅ Sidebar section headers:
+
+Dark color background (not black, not too light)
+
+Text clearly visible in white
+
+Smooth open/close animation
+
+✅ This applies to:
+
+Operations
+
+Master
+
+Reports
+
+Utility
+
+✅ 3. CHALAN ENTRY – VIEW ONLY + SCROLL + CANCEL BUTTON
+
+✅ In Chalan Entry:
+
+❌ NO Print Button
+
+❌ NO Download Button
+
+✅ ONLY “View Chalan” allowed
+
+✅ Proper vertical scrolling for long data
+
+✅ “Cancel / Close” button must be visible at the bottom
+
+✅ Chalan Entry is strictly view-only mode
+
+✅ 4. CHALAN REPORT – FULL DESIGN VIEW + SCROLL + PRINT + PDF
+
+✅ In Chalan Report, when clicking the Eye/View icon:
+
+✅ Open chalan in:
+
+Proper full-width layout
+
+Proper vertical scrolling
+
+No cropping
+
+Professional formatted design
+(Exactly like your uploaded 2nd image layout)
+
+✅ Bottom buttons must include:
+
+✅ Download PDF
+
+✅ Print
+
+✅ 5. ADD DOWNLOAD PDF ICON IN ACTION COLUMN
+
+✅ In Chalan Report → Action Column:
+
+Each row must have:
+
+👁 View
+
+⬇️ Download PDF (new button)
+
+✅ Download PDF must directly export:
+
+The same formatted chalan design
+
+With company header
+
+With current date & time
+
+✅ 6. PAGINATION – DEFAULT 5 ROWS EVERYWHERE
+
+✅ Apply pagination with default 5 rows per page to:
+
+Masters
+
+Reports
+
+Leave Entry
+
+Chalan Entry
+
+Chalan Revise
+
+User Management
+
+Conflict Reports
+
+Booking Logs
+
+✅ Pagination must support:
+
+Next / Previous
+
+Page number indicator
+
+✅ 7. LOGIN – FIX COMPANY SELECTION + DEMO DATA (NOV + DEC)
+
+✅ Fix issue where company is not showing on login.
+
+✅ Login must allow selecting company:
+
+Company	Username	PIN
+PRISM	admin	1234
+Airavata Studio	airavata_admin	1234
+
+✅ Company selection must reflect in:
+
+Header
+
+Booking
+
+Chalan
+
+Reports
+
+✅ DEMO DATA RULES:
+
+✅ Add 15 demo records per module in:
+
+Operations (Bookings)
+
+Masters
+
+Reports
+
+Utility (Users)
+
+Conflict Reports
+
+✅ Demo data months must include:
+
+✅ November
+
+✅ December
+
+✅ Data Rules:
+
+1–2 day gaps
+
+Each day: 1–3 events
+
+Minimum 2 conflict records
+
+All records linked properly across modules
+
+✅ 8. LOGOUT – CONFIRMATION POPUP WITH ATTRACTIVE DESIGN
+
+✅ When clicking Logout:
+
+✅ Show confirmation modal:
+
+“Are you sure you want to logout?”
+
+✅ Confirm
+
+✅ Cancel
+
+✅ UI Rules:
+
+Light blue + dark contrast
+
+Smooth animation
+
+Center alignment
+
+Clean modern design
+
+✅ Only logout if user confirms
+
+✅ 9. USER EDIT FORM – AUTOFILL + UPDATE + NEW FIELDS
+
+✅ When clicking Edit User:
+
+✅ Properly auto-fill:
+
+Username
+
+Mobile
+
+Email
+
+Role
+
+Company
+
+Status
+
+✅ Editable Fields:
+
+✅ Name
+
+✅ Mobile
+
+✅ Email
+
+✅ Status
+
+✅ Role
+
+✅ When user clicks Update:
+
+Save in DB
+
+Reflect immediately after refresh
+
+Reflect throughout system (login, reports, chalan)
+
+✅ Apply this to all users:
+
+admin
+
+airavata_admin
+
+gst users
+
+non-gst users
+
+operations users
+
+✅ UI Rules:
+
+Light blue theme
+
+Proper alignment
+
+Input icons inside fields
+
+Clean spacing
+
+Professional modal design
+
+✅ FINAL SUCCESS CONDITIONS
+
+After implementation, system must:
+
+✅ Support client-owned editors & rooms
+✅ Sidebar opens by default with dark headers
+✅ Chalan entry = view only + scroll
+✅ Chalan report = full design + print + PDF
+✅ Download PDF button visible in chalan report list
+✅ Pagination defaults to 5 rows everywhere
+✅ Company selection works perfectly on login
+✅ 15 demo records per module (Nov + Dec)
+✅ Logout asks confirmation with modern UI
+✅ User edit auto-fills + updates correctly with new fields
