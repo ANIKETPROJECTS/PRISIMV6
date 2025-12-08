@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useSearch, useLocation } from "wouter";
-import { Plus, Trash2, FileText, Eye, X } from "lucide-react";
+import { Plus, Trash2, FileText, Eye, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +68,7 @@ export default function ChalanPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingChalan, setDeletingChalan] = useState<ChalanWithItems | null>(null);
   const [urlParamsProcessed, setUrlParamsProcessed] = useState(false);
+  const [editingChalan, setEditingChalan] = useState<ChalanWithItems | null>(null);
 
   const { data: chalans = [], isLoading } = useQuery<ChalanWithItems[]>({
     queryKey: ["/api/chalans"],
@@ -156,6 +157,41 @@ export default function ChalanPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: ChalanFormValues & { id: number }) => {
+      const items = data.items.map((item) => ({
+        description: item.description,
+        quantity: parseInt(item.quantity) || 1,
+        rate: parseInt(item.rate) || 0,
+        amount: (parseInt(item.quantity) || 1) * (parseInt(item.rate) || 0),
+      }));
+      const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+      return apiRequest("PATCH", `/api/chalans/${data.id}`, {
+        customerId: parseInt(data.customerId),
+        projectId: parseInt(data.projectId),
+        chalanDate: data.chalanDate,
+        notes: data.notes,
+        totalAmount,
+        items,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('/api/chalans')
+      });
+      toast({ title: "Chalan updated successfully" });
+      handleCloseDialog();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating chalan",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       return apiRequest("DELETE", `/api/chalans/${id}`);
@@ -177,6 +213,7 @@ export default function ChalanPage() {
   });
 
   const handleOpenDialog = () => {
+    setEditingChalan(null);
     form.reset({
       customerId: "",
       projectId: "",
@@ -187,8 +224,33 @@ export default function ChalanPage() {
     setDialogOpen(true);
   };
 
+  const handleEditChalan = (chalan: ChalanWithItems) => {
+    if (chalan.isCancelled) {
+      toast({
+        title: "Cannot edit cancelled chalan",
+        description: "Cancelled chalans are read-only and cannot be modified.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setEditingChalan(chalan);
+    form.reset({
+      customerId: chalan.customerId.toString(),
+      projectId: chalan.projectId.toString(),
+      chalanDate: chalan.chalanDate,
+      notes: chalan.notes || "",
+      items: chalan.items?.length ? chalan.items.map(item => ({
+        description: item.description,
+        quantity: item.quantity.toString(),
+        rate: item.rate.toString(),
+      })) : [{ description: "", quantity: "1", rate: "0" }],
+    });
+    setDialogOpen(true);
+  };
+
   const handleCloseDialog = () => {
     setDialogOpen(false);
+    setEditingChalan(null);
     form.reset();
   };
 
@@ -198,7 +260,11 @@ export default function ChalanPage() {
   };
 
   const onSubmit = (data: ChalanFormValues) => {
-    createMutation.mutate(data);
+    if (editingChalan) {
+      updateMutation.mutate({ ...data, id: editingChalan.id });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   const columns: Column<ChalanWithItems>[] = [
@@ -290,6 +356,16 @@ export default function ChalanPage() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {!row.isCancelled && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditChalan(row)}
+                      data-testid={`button-edit-chalan-${row.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -311,9 +387,11 @@ export default function ChalanPage() {
       <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Chalan</DialogTitle>
+            <DialogTitle>{editingChalan ? "Edit Chalan" : "Create Chalan"}</DialogTitle>
             <DialogDescription>
-              Create a new chalan with project details and items.
+              {editingChalan 
+                ? `Update chalan ${editingChalan.chalanNumber}. Chalan ID and Created Date will be preserved.`
+                : "Create a new chalan with project details and items."}
             </DialogDescription>
           </DialogHeader>
 
@@ -497,8 +575,10 @@ export default function ChalanPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isPending} data-testid="button-save-chalan">
-                  {isPending ? "Creating..." : "Create Chalan"}
+                <Button type="submit" disabled={isPending || updateMutation.isPending} data-testid="button-save-chalan">
+                  {editingChalan 
+                    ? (updateMutation.isPending ? "Updating..." : "Update Chalan")
+                    : (isPending ? "Creating..." : "Create Chalan")}
                 </Button>
               </DialogFooter>
             </form>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export interface Column<T> {
   key: string;
@@ -26,6 +27,8 @@ export interface Column<T> {
   sortable?: boolean;
   className?: string;
 }
+
+type SortDirection = "asc" | "desc" | null;
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -53,6 +56,25 @@ export function DataTable<T extends Record<string, any>>({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(pageSize);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      // Toggle direction: asc -> desc -> null
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortColumn(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection("asc");
+    }
+  };
 
   const filteredData = data.filter((row) =>
     Object.values(row).some((value) =>
@@ -60,9 +82,42 @@ export function DataTable<T extends Record<string, any>>({
     )
   );
 
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const sortedData = useMemo(() => {
+    if (!sortColumn || !sortDirection) return filteredData;
+
+    return [...filteredData].sort((a, b) => {
+      let aVal = a[sortColumn];
+      let bVal = b[sortColumn];
+
+      // Handle nested objects like customer, project, room
+      if (aVal && typeof aVal === 'object' && 'name' in aVal) aVal = aVal.name;
+      if (bVal && typeof bVal === 'object' && 'name' in bVal) bVal = bVal.name;
+
+      // Handle dates
+      if (sortColumn.toLowerCase().includes('date')) {
+        aVal = new Date(aVal as string).getTime();
+        bVal = new Date(bVal as string).getTime();
+      }
+
+      // Handle null/undefined
+      if (aVal == null) return sortDirection === "asc" ? 1 : -1;
+      if (bVal == null) return sortDirection === "asc" ? -1 : 1;
+
+      // Compare
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const comparison = aVal.localeCompare(bVal);
+        return sortDirection === "asc" ? comparison : -comparison;
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredData, sortColumn, sortDirection]);
+
+  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
   const startIndex = (page - 1) * rowsPerPage;
-  const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+  const paginatedData = sortedData.slice(startIndex, startIndex + rowsPerPage);
 
   if (isLoading) {
     return (
@@ -128,8 +183,30 @@ export function DataTable<T extends Record<string, any>>({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={column.key} className={column.className}>
-                  {column.header}
+                <TableHead 
+                  key={column.key} 
+                  className={cn(
+                    column.className,
+                    column.sortable && "cursor-pointer select-none"
+                  )}
+                  onClick={() => column.sortable && handleSort(column.key)}
+                >
+                  <div className="flex items-center gap-1">
+                    {column.header}
+                    {column.sortable && (
+                      <span className="inline-flex">
+                        {sortColumn === column.key ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="h-4 w-4 text-primary" data-testid={`sort-asc-${column.key}`} />
+                          ) : (
+                            <ArrowDown className="h-4 w-4 text-primary" data-testid={`sort-desc-${column.key}`} />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-4 w-4 text-muted-foreground opacity-50" data-testid={`sort-none-${column.key}`} />
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </TableHead>
               ))}
               {actions && <TableHead className="w-[100px]">Actions</TableHead>}

@@ -88,6 +88,7 @@ export default function BookingReportPage() {
     {
       key: "bookingDate",
       header: "Date",
+      sortable: true,
       cell: (row) => (
         <span className="font-mono text-sm">
           {format(new Date(row.bookingDate), "PP")}

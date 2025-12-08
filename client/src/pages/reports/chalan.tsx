@@ -103,6 +103,7 @@ export default function ChalanReportPage() {
     {
       key: "chalanDate",
       header: "Date",
+      sortable: true,
       cell: (row) => (
         <span className="font-mono text-sm">
           {format(new Date(row.chalanDate), "PP")}

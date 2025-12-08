@@ -802,6 +802,36 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async updateChalan(id: number, chalanData: Partial<InsertChalan>, items?: InsertChalanItem[]): Promise<Chalan | undefined> {
+    // Update the chalan basic info (but preserve chalanNumber and createdAt)
+    const updateData: any = {};
+    if (chalanData.customerId !== undefined) updateData.customerId = chalanData.customerId;
+    if (chalanData.projectId !== undefined) updateData.projectId = chalanData.projectId;
+    if (chalanData.chalanDate !== undefined) updateData.chalanDate = chalanData.chalanDate;
+    if (chalanData.notes !== undefined) updateData.notes = chalanData.notes;
+    if (chalanData.totalAmount !== undefined) updateData.totalAmount = chalanData.totalAmount;
+
+    const [updated] = await db
+      .update(chalans)
+      .set(updateData)
+      .where(eq(chalans.id, id))
+      .returning();
+
+    if (!updated) return undefined;
+
+    // If items are provided, delete old items and insert new ones
+    if (items && items.length > 0) {
+      await db.delete(chalanItems).where(eq(chalanItems.chalanId, id));
+      const itemsInsert: (typeof chalanItems.$inferInsert)[] = items.map(item => ({
+        ...item,
+        chalanId: id,
+      }));
+      await db.insert(chalanItems).values(itemsInsert);
+    }
+
+    return updated;
+  }
+
   async cancelChalan(id: number, reason: string): Promise<Chalan | undefined> {
     const [updated] = await db
       .update(chalans)

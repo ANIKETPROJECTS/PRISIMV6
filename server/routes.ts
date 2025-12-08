@@ -488,6 +488,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
   app.patch("/api/bookings/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Check if booking is cancelled - cancelled bookings are read-only
+      const existingBooking = await storage.getBooking(id);
+      if (!existingBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      if (existingBooking.status === "cancelled") {
+        return res.status(403).json({ message: "Cancelled Booking is Read-Only - Modifications are not allowed" });
+      }
+      
       const booking = await storage.updateBooking(id, req.body);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
@@ -634,6 +644,34 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
       }
       const revision = await storage.createChalanRevision(id, changes);
       res.status(201).json(revision);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/chalans/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Check if chalan is cancelled - cancelled chalans are read-only
+      const existingChalan = await storage.getChalan(id);
+      if (!existingChalan) {
+        return res.status(404).json({ message: "Chalan not found" });
+      }
+      if (existingChalan.isCancelled) {
+        return res.status(403).json({ message: "Cancelled Chalan is Read-Only - Modifications are not allowed" });
+      }
+      
+      const { items, ...chalanData } = req.body;
+      const chalan = await storage.updateChalan(id, chalanData, items);
+      if (!chalan) {
+        return res.status(404).json({ message: "Chalan not found" });
+      }
+      
+      // Create a revision log
+      await storage.createChalanRevision(id, "Chalan updated", undefined);
+      
+      res.json(chalan);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
