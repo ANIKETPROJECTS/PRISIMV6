@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, gte, lte, sql, desc, or, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, or, inArray, asc } from "drizzle-orm";
 import {
   companies,
   users,
@@ -126,7 +126,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Companies
   async getCompanies(): Promise<Company[]> {
-    return db.select().from(companies);
+    return db.select().from(companies).orderBy(asc(companies.name));
   }
 
   async getCompany(id: number): Promise<Company | undefined> {
@@ -154,7 +154,8 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select()
       .from(users)
-      .leftJoin(companies, eq(users.companyId, companies.id));
+      .leftJoin(companies, eq(users.companyId, companies.id))
+      .orderBy(asc(users.username));
     
     return result.map(r => ({
       ...r.users,
@@ -195,7 +196,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserAccess(userId: number): Promise<UserModuleAccess[]> {
-    return db.select().from(userModuleAccess).where(eq(userModuleAccess.userId, userId));
+    return db.select().from(userModuleAccess).where(eq(userModuleAccess.userId, userId)).orderBy(asc(userModuleAccess.module));
   }
 
   async setUserAccess(userId: number, access: InsertUserModuleAccess[]): Promise<void> {
@@ -207,8 +208,8 @@ export class DatabaseStorage implements IStorage {
 
   // Customers
   async getCustomers(): Promise<(Customer & { contacts?: CustomerContact[] })[]> {
-    const customersList = await db.select().from(customers);
-    const contactsList = await db.select().from(customerContacts);
+    const customersList = await db.select().from(customers).orderBy(asc(customers.name));
+    const contactsList = await db.select().from(customerContacts).orderBy(asc(customerContacts.name));
     
     return customersList.map(c => ({
       ...c,
@@ -220,7 +221,7 @@ export class DatabaseStorage implements IStorage {
     const [customer] = await db.select().from(customers).where(eq(customers.id, id));
     if (!customer) return undefined;
     
-    const contacts = await db.select().from(customerContacts).where(eq(customerContacts.customerId, id));
+    const contacts = await db.select().from(customerContacts).where(eq(customerContacts.customerId, id)).orderBy(asc(customerContacts.name));
     return { ...customer, contacts };
   }
 
@@ -289,14 +290,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomerContacts(customerId: number): Promise<CustomerContact[]> {
-    return db.select().from(customerContacts).where(eq(customerContacts.customerId, customerId));
+    return db.select().from(customerContacts).where(eq(customerContacts.customerId, customerId)).orderBy(asc(customerContacts.name));
   }
 
   // Projects
   async getProjects(customerId?: number): Promise<(Project & { customer?: Customer })[]> {
     const query = customerId
-      ? db.select().from(projects).leftJoin(customers, eq(projects.customerId, customers.id)).where(eq(projects.customerId, customerId))
-      : db.select().from(projects).leftJoin(customers, eq(projects.customerId, customers.id));
+      ? db.select().from(projects).leftJoin(customers, eq(projects.customerId, customers.id)).where(eq(projects.customerId, customerId)).orderBy(asc(projects.name))
+      : db.select().from(projects).leftJoin(customers, eq(projects.customerId, customers.id)).orderBy(asc(projects.name));
     
     const result = await query;
     return result.map(r => ({
@@ -335,7 +336,7 @@ export class DatabaseStorage implements IStorage {
 
   // Rooms
   async getRooms(): Promise<Room[]> {
-    return db.select().from(rooms);
+    return db.select().from(rooms).orderBy(asc(rooms.name));
   }
 
   async getRoom(id: number): Promise<Room | undefined> {
@@ -364,7 +365,7 @@ export class DatabaseStorage implements IStorage {
 
   // Editors
   async getEditors(): Promise<Editor[]> {
-    return db.select().from(editors);
+    return db.select().from(editors).orderBy(asc(editors.name));
   }
 
   async getEditor(id: number): Promise<Editor | undefined> {
@@ -430,7 +431,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions)) as any;
     }
 
-    const result = await query;
+    const result = await query.orderBy(asc(bookings.bookingDate), asc(bookings.fromTime));
     return result.map(r => ({
       ...r.bookings,
       room: r.rooms || undefined,
@@ -585,7 +586,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(bookingLogs)
       .where(eq(bookingLogs.bookingId, bookingId))
-      .orderBy(desc(bookingLogs.createdAt));
+      .orderBy(asc(bookingLogs.createdAt));
   }
 
   async checkBookingConflicts(booking: { roomId: number; editorId?: number; bookingDate: string; fromTime: string; toTime: string; excludeBookingId?: number }): Promise<{ hasConflict: boolean; conflicts: any[]; editorOnLeave: boolean; leaveInfo?: any }> {
@@ -687,7 +688,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(editorLeaves.editorId, editorId)) as any;
     }
 
-    const result = await query;
+    const result = await query.orderBy(asc(editorLeaves.fromDate));
     return result.map(r => ({
       ...r.editor_leaves,
       editor: r.editors || undefined,
@@ -737,14 +738,14 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions)) as any;
     }
 
-    const result = await query.orderBy(desc(chalans.chalanDate));
+    const result = await query.orderBy(asc(chalans.chalanDate), asc(chalans.chalanNumber));
     
     const chalanIds = result.map(r => r.chalans.id);
     const items = chalanIds.length > 0
-      ? await db.select().from(chalanItems).where(inArray(chalanItems.chalanId, chalanIds))
+      ? await db.select().from(chalanItems).where(inArray(chalanItems.chalanId, chalanIds)).orderBy(asc(chalanItems.chalanId), asc(chalanItems.id))
       : [];
     const revisions = chalanIds.length > 0
-      ? await db.select().from(chalanRevisions).where(inArray(chalanRevisions.chalanId, chalanIds))
+      ? await db.select().from(chalanRevisions).where(inArray(chalanRevisions.chalanId, chalanIds)).orderBy(asc(chalanRevisions.chalanId), asc(chalanRevisions.revisionNumber))
       : [];
 
     return result.map(r => ({
@@ -766,8 +767,8 @@ export class DatabaseStorage implements IStorage {
 
     if (!result) return undefined;
 
-    const items = await db.select().from(chalanItems).where(eq(chalanItems.chalanId, id));
-    const revisions = await db.select().from(chalanRevisions).where(eq(chalanRevisions.chalanId, id));
+    const items = await db.select().from(chalanItems).where(eq(chalanItems.chalanId, id)).orderBy(asc(chalanItems.id));
+    const revisions = await db.select().from(chalanRevisions).where(eq(chalanRevisions.chalanId, id)).orderBy(asc(chalanRevisions.revisionNumber));
 
     return {
       ...result.chalans,
@@ -815,7 +816,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(chalanRevisions)
       .where(eq(chalanRevisions.chalanId, chalanId))
-      .orderBy(desc(chalanRevisions.createdAt));
+      .orderBy(asc(chalanRevisions.revisionNumber));
   }
 
   async createChalanRevision(chalanId: number, changes: string, userId?: number): Promise<ChalanRevision> {
@@ -871,8 +872,8 @@ export class DatabaseStorage implements IStorage {
 
   async getEditorReport(from: string, to: string, editorId?: number): Promise<any[]> {
     const editorsList = editorId
-      ? await db.select().from(editors).where(eq(editors.id, editorId))
-      : await db.select().from(editors).where(eq(editors.isActive, true));
+      ? await db.select().from(editors).where(eq(editors.id, editorId)).orderBy(asc(editors.name))
+      : await db.select().from(editors).where(eq(editors.isActive, true)).orderBy(asc(editors.name));
     
     const reports = [];
     
