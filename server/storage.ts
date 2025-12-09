@@ -312,11 +312,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
+    // Check for duplicate project name for the same customer
+    const existingProjects = await db.select()
+      .from(projects)
+      .where(and(
+        eq(projects.customerId, project.customerId),
+        eq(projects.name, project.name),
+        eq(projects.isActive, true)
+      ));
+    
+    if (existingProjects.length > 0) {
+      throw new Error(`A project with the name "${project.name}" already exists for this customer`);
+    }
+    
     const [created] = await db.insert(projects).values(project).returning();
     return created;
   }
 
   async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
+    // Check for conflicts if name, customerId, or isActive is being updated
+    // This includes reactivation scenario where isActive goes from false to true
+    const needsConflictCheck = project.name !== undefined || project.customerId !== undefined || project.isActive === true;
+    
+    if (needsConflictCheck) {
+      const existing = await this.getProject(id);
+      if (existing) {
+        const nameToCheck = project.name ?? existing.name;
+        const customerIdToCheck = project.customerId ?? existing.customerId;
+        const willBeActive = project.isActive ?? existing.isActive;
+        
+        // Only check for conflicts if the project will be active after the update
+        if (willBeActive) {
+          const duplicates = await db.select()
+            .from(projects)
+            .where(and(
+              eq(projects.customerId, customerIdToCheck),
+              eq(projects.name, nameToCheck),
+              eq(projects.isActive, true)
+            ));
+          
+          // Filter out the current project from duplicates
+          const conflicting = duplicates.filter(p => p.id !== id);
+          if (conflicting.length > 0) {
+            throw new Error(`A project with the name "${nameToCheck}" already exists for this customer`);
+          }
+        }
+      }
+    }
+    
     const [updated] = await db.update(projects).set(project).where(eq(projects.id, id)).returning();
     return updated;
   }
