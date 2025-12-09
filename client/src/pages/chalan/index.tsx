@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { useSearch, useLocation } from "wouter";
-import { Plus, Trash2, FileText, Eye, X, Pencil } from "lucide-react";
+import { Plus, Trash2, FileText, Eye, X, Pencil, Calendar, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,8 +39,16 @@ import { DataTable, Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { ChalanInvoice } from "@/components/chalan-invoice";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { ChalanWithItems, Customer, Project } from "@shared/schema";
+import type { ChalanWithItems, Customer, Project, Booking } from "@shared/schema";
+
+interface BookingWithRelations extends Booking {
+  room?: { name: string };
+  customer?: { name: string };
+  project?: { name: string };
+  editor?: { name: string };
+}
 
 const chalanItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -60,6 +68,7 @@ type ChalanFormValues = z.infer<typeof chalanFormSchema>;
 
 export default function ChalanPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const searchString = useSearch();
   const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,6 +78,9 @@ export default function ChalanPage() {
   const [deletingChalan, setDeletingChalan] = useState<ChalanWithItems | null>(null);
   const [urlParamsProcessed, setUrlParamsProcessed] = useState(false);
   const [editingChalan, setEditingChalan] = useState<ChalanWithItems | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("");
+
+  const canEditChalans = user?.role === "admin" || user?.role === "gst";
 
   const { data: chalans = [], isLoading } = useQuery<ChalanWithItems[]>({
     queryKey: ["/api/chalans"],
@@ -76,6 +88,10 @@ export default function ChalanPage() {
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const { data: bookings = [] } = useQuery<BookingWithRelations[]>({
+    queryKey: ["/api/bookings"],
   });
 
   const form = useForm<ChalanFormValues>({
@@ -238,7 +254,16 @@ export default function ChalanPage() {
   });
 
   const handleOpenDialog = () => {
+    if (!canEditChalans) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to create chalans.",
+        variant: "destructive",
+      });
+      return;
+    }
     setEditingChalan(null);
+    setSelectedBookingId("");
     form.reset({
       customerId: "",
       projectId: "",
@@ -249,7 +274,46 @@ export default function ChalanPage() {
     setDialogOpen(true);
   };
 
+  const handleBookingSelect = (bookingId: string) => {
+    setSelectedBookingId(bookingId);
+    if (!bookingId) return;
+    
+    const booking = bookings.find(b => b.id === parseInt(bookingId));
+    if (!booking) return;
+    
+    form.setValue("customerId", booking.customerId.toString());
+    
+    setTimeout(() => {
+      form.setValue("projectId", booking.projectId.toString());
+    }, 100);
+    
+    form.setValue("chalanDate", booking.bookingDate);
+    
+    const hours = booking.totalHours || 0;
+    const roomName = booking.room?.name || "Room booking";
+    const editorName = booking.editor?.name || "";
+    const description = editorName 
+      ? `${roomName} - ${editorName} (${hours} hrs)`
+      : `${roomName} (${hours} hrs)`;
+    
+    form.setValue("items", [{
+      description,
+      quantity: (hours > 0 ? hours : 1).toString(),
+      rate: "0",
+    }]);
+    
+    form.setValue("notes", booking.notes || "");
+  };
+
   const handleEditChalan = (chalan: ChalanWithItems) => {
+    if (!canEditChalans) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to edit chalans.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (chalan.isCancelled) {
       toast({
         title: "Cannot edit cancelled chalan",
@@ -259,6 +323,7 @@ export default function ChalanPage() {
       return;
     }
     setEditingChalan(chalan);
+    setSelectedBookingId("");
     form.reset({
       customerId: chalan.customerId.toString(),
       projectId: chalan.projectId.toString(),
@@ -276,6 +341,7 @@ export default function ChalanPage() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingChalan(null);
+    setSelectedBookingId("");
     form.reset();
   };
 
@@ -353,18 +419,20 @@ export default function ChalanPage() {
           <EmptyState
             icon={FileText}
             title="No chalans yet"
-            description="Create your first chalan to start billing."
-            actionLabel="Create Chalan"
-            onAction={handleOpenDialog}
+            description={canEditChalans ? "Create your first chalan to start billing." : "No chalans have been created yet."}
+            actionLabel={canEditChalans ? "Create Chalan" : undefined}
+            onAction={canEditChalans ? handleOpenDialog : undefined}
           />
         ) : (
           <div className="space-y-4">
-            <div className="flex justify-end">
-              <Button onClick={handleOpenDialog} data-testid="button-create-chalan">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Chalan
-              </Button>
-            </div>
+            {canEditChalans && (
+              <div className="flex justify-end">
+                <Button onClick={handleOpenDialog} data-testid="button-create-chalan">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Chalan
+                </Button>
+              </div>
+            )}
 
             <DataTable
               columns={columns}
@@ -381,7 +449,7 @@ export default function ChalanPage() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  {!row.isCancelled && (
+                  {canEditChalans && !row.isCancelled && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -391,17 +459,19 @@ export default function ChalanPage() {
                       <Pencil className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setDeletingChalan(row);
-                      setDeleteDialogOpen(true);
-                    }}
-                    data-testid={`button-delete-chalan-${row.id}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canEditChalans && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setDeletingChalan(row);
+                        setDeleteDialogOpen(true);
+                      }}
+                      data-testid={`button-delete-chalan-${row.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               )}
             />
@@ -422,6 +492,37 @@ export default function ChalanPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {!editingChalan && (
+                <div className="p-3 bg-muted/50 rounded-md space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Link2 className="h-4 w-4" />
+                    <span>Quick fill from booking (optional)</span>
+                  </div>
+                  <Select value={selectedBookingId} onValueChange={handleBookingSelect}>
+                    <SelectTrigger data-testid="select-booking">
+                      <SelectValue placeholder="Select a booking to auto-fill data..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bookings
+                        .filter(b => b.status === "confirmed")
+                        .sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime())
+                        .slice(0, 50)
+                        .map((booking) => (
+                          <SelectItem key={booking.id} value={booking.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3" />
+                              <span>{format(new Date(booking.bookingDate), "PP")}</span>
+                              <span className="text-muted-foreground">-</span>
+                              <span>{booking.customer?.name || "Unknown"}</span>
+                              <span className="text-muted-foreground">({booking.room?.name})</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
