@@ -378,10 +378,18 @@ export default function BookingPage() {
             </Label>
           </div>
 
-          <div className="ml-auto">
-            <Button onClick={() => handleNewBooking()} data-testid="button-new-booking">
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenDayView(selectedDate || new Date())}
+              data-testid="button-day-view"
+            >
+              <CalendarDays className="h-4 w-4 mr-2" />
+              Day View
+            </Button>
+            <Button onClick={() => handleNewBooking()} data-testid="button-schedule-booking">
               <Plus className="h-4 w-4 mr-2" />
-              New Booking
+              Schedule Booking
             </Button>
           </div>
         </div>
