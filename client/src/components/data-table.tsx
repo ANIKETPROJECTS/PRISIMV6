@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ChevronLeft, ChevronRight, Download, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, ArrowUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -61,16 +61,10 @@ export function DataTable<T extends Record<string, any>>({
 
   const handleSort = (columnKey: string) => {
     if (sortColumn === columnKey) {
-      // Toggle direction: asc -> desc -> null
-      if (sortDirection === "asc") {
-        setSortDirection("desc");
-      } else if (sortDirection === "desc") {
-        setSortColumn(null);
-        setSortDirection(null);
-      } else {
-        setSortDirection("asc");
-      }
+      // Toggle direction: asc <-> desc (simple two-state toggle)
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
+      // New column: start with ascending
       setSortColumn(columnKey);
       setSortDirection("asc");
     }
@@ -223,13 +217,15 @@ export function DataTable<T extends Record<string, any>>({
                     {column.sortable && (
                       <span className="inline-flex">
                         {sortColumn === column.key ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-4 w-4 text-primary" data-testid={`sort-asc-${column.key}`} />
-                          ) : (
-                            <ArrowDown className="h-4 w-4 text-primary" data-testid={`sort-desc-${column.key}`} />
-                          )
+                          <ArrowUp 
+                            className={cn(
+                              "h-4 w-4 text-primary transition-transform duration-200",
+                              sortDirection === "desc" && "rotate-180"
+                            )} 
+                            data-testid={`sort-${sortDirection}-${column.key}`} 
+                          />
                         ) : (
-                          <ArrowUpDown className="h-4 w-4 text-muted-foreground opacity-50" data-testid={`sort-none-${column.key}`} />
+                          <ArrowUp className="h-4 w-4 text-muted-foreground opacity-40" data-testid={`sort-none-${column.key}`} />
                         )}
                       </span>
                     )}
