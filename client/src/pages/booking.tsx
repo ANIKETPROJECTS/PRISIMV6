@@ -89,6 +89,10 @@ export default function BookingPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
   const [viewingBooking, setViewingBooking] = useState<BookingWithRelations | null>(null);
+  const [dayViewDialogOpen, setDayViewDialogOpen] = useState(false);
+  const [dayViewDate, setDayViewDate] = useState<Date | null>(null);
+
+  const MAX_BOOKINGS_PER_DAY = 3;
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -147,9 +151,15 @@ export default function BookingPage() {
   }, [bookings, hideCancelled, selectedRoom, selectedStatus]);
 
   const getBookingsForDay = (day: Date) => {
-    return filteredBookings.filter((booking) =>
-      isSameDay(new Date(booking.bookingDate), day)
-    );
+    return filteredBookings
+      .filter((booking) => isSameDay(new Date(booking.bookingDate), day))
+      .sort((a, b) => {
+        // Sort by fromTime descending to show latest bookings first
+        if (a.fromTime && b.fromTime) {
+          return b.fromTime.localeCompare(a.fromTime);
+        }
+        return 0;
+      });
   };
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -195,6 +205,24 @@ export default function BookingPage() {
   const handleViewChalan = (booking: BookingWithRelations) => {
     navigate(`/reports/chalan?customerId=${booking.customerId}&projectId=${booking.projectId}`);
   };
+
+  const handleOpenDayView = (day: Date) => {
+    setDayViewDate(day);
+    setDayViewDialogOpen(true);
+  };
+
+  const dayViewBookings = useMemo(() => {
+    if (!dayViewDate) return [];
+    return filteredBookings
+      .filter((booking) => isSameDay(new Date(booking.bookingDate), dayViewDate))
+      .sort((a, b) => {
+        // Sort by fromTime descending to show latest bookings first
+        if (a.fromTime && b.fromTime) {
+          return b.fromTime.localeCompare(a.fromTime);
+        }
+        return 0;
+      });
+  }, [dayViewDate, filteredBookings]);
 
   const statusCounts = useMemo(() => {
     return {
@@ -374,6 +402,8 @@ export default function BookingPage() {
 
             {calendarDays.map((day) => {
               const dayBookings = getBookingsForDay(day);
+              const visibleBookings = dayBookings.slice(0, MAX_BOOKINGS_PER_DAY);
+              const remainingCount = dayBookings.length - MAX_BOOKINGS_PER_DAY;
               const isToday = isSameDay(day, new Date());
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isPastDate = isBefore(startOfDay(day), startOfDay(new Date()));
@@ -414,7 +444,7 @@ export default function BookingPage() {
 
                   <ScrollArea className="flex-1">
                     <div className="space-y-1">
-                      {dayBookings.map((booking) => (
+                      {visibleBookings.map((booking) => (
                         <BookingCard
                           key={booking.id}
                           booking={booking}
@@ -426,6 +456,17 @@ export default function BookingPage() {
                           compact
                         />
                       ))}
+                      {remainingCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full h-6 text-xs text-muted-foreground"
+                          onClick={() => handleOpenDayView(day)}
+                          data-testid={`button-more-bookings-${format(day, "yyyy-MM-dd")}`}
+                        >
+                          +{remainingCount} more
+                        </Button>
+                      )}
                     </div>
                   </ScrollArea>
 
@@ -559,6 +600,74 @@ export default function BookingPage() {
               )}
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dayViewDialogOpen} onOpenChange={(open) => {
+        setDayViewDialogOpen(open);
+        if (!open) setDayViewDate(null);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              {dayViewDate ? format(dayViewDate, "EEEE, MMMM d, yyyy") : "Day View"}
+            </DialogTitle>
+            <DialogDescription>
+              All bookings for this day ({dayViewBookings.length} total)
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-2 pr-4">
+              {dayViewBookings.length > 0 ? (
+                dayViewBookings.map((booking) => (
+                  <BookingCard
+                    key={booking.id}
+                    booking={booking}
+                    onEdit={(b) => {
+                      setDayViewDialogOpen(false);
+                      handleEditBooking(b);
+                    }}
+                    onCancel={(b) => {
+                      setDayViewDialogOpen(false);
+                      handleCancelBooking(b);
+                    }}
+                    onViewLogs={(b) => {
+                      setDayViewDialogOpen(false);
+                      handleViewLogs(b);
+                    }}
+                    onCreateChalan={handleCreateChalan}
+                    onViewChalan={handleViewChalan}
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No bookings for this day.
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter className="gap-2">
+            {dayViewDate && !isBefore(startOfDay(dayViewDate), startOfDay(new Date())) && (
+              <Button
+                onClick={() => {
+                  setDayViewDialogOpen(false);
+                  if (dayViewDate) handleNewBooking(dayViewDate);
+                }}
+                data-testid="button-day-view-new-booking"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Booking
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setDayViewDialogOpen(false)}
+              data-testid="button-day-view-close"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
