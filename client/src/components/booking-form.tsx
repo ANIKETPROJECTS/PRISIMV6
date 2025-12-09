@@ -204,7 +204,7 @@ export function BookingForm({ open, onOpenChange, booking, defaultDate, readOnly
         toTime: data.toTime,
         actualFromTime: data.actualFromTime || null,
         actualToTime: data.actualToTime || null,
-        breakHours: parseInt(data.breakHours) || 0,
+        breakHours: parseFloat(data.breakHours) || 0,
         status: data.status,
         notes: data.notes,
         repeatDays: data.repeatDays,
@@ -240,7 +240,7 @@ export function BookingForm({ open, onOpenChange, booking, defaultDate, readOnly
         toTime: data.toTime,
         actualFromTime: data.actualFromTime || null,
         actualToTime: data.actualToTime || null,
-        breakHours: parseInt(data.breakHours) || 0,
+        breakHours: parseFloat(data.breakHours) || 0,
         status: data.status,
         notes: data.notes,
       });
@@ -535,6 +535,7 @@ export function BookingForm({ open, onOpenChange, booking, defaultDate, readOnly
                       <Input 
                         type="number" 
                         min="0" 
+                        step="any"
                         data-testid="input-break-hours"
                         disabled={readOnly}
                         {...field} 

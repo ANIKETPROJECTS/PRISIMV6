@@ -151,9 +151,9 @@ export default function ChalanPage() {
     mutationFn: async (data: ChalanFormValues) => {
       const items = data.items.map((item) => ({
         description: item.description,
-        quantity: parseInt(item.quantity) || 1,
-        rate: parseInt(item.rate) || 0,
-        amount: (parseInt(item.quantity) || 1) * (parseInt(item.rate) || 0),
+        quantity: parseFloat(item.quantity) || 1,
+        rate: parseFloat(item.rate) || 0,
+        amount: (parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0),
       }));
       const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
@@ -186,9 +186,9 @@ export default function ChalanPage() {
     mutationFn: async (data: ChalanFormValues & { id: number }) => {
       const items = data.items.map((item) => ({
         description: item.description,
-        quantity: parseInt(item.quantity) || 1,
-        rate: parseInt(item.rate) || 0,
-        amount: (parseInt(item.quantity) || 1) * (parseInt(item.rate) || 0),
+        quantity: parseFloat(item.quantity) || 1,
+        rate: parseFloat(item.rate) || 0,
+        amount: (parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0),
       }));
       const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
@@ -544,7 +544,8 @@ export default function ChalanPage() {
                               <FormControl>
                                 <Input
                                   type="number"
-                                  min="1"
+                                  min="0.01"
+                                  step="any"
                                   data-testid={`input-item-quantity-${index}`}
                                   {...field}
                                 />
@@ -563,6 +564,7 @@ export default function ChalanPage() {
                                 <Input
                                   type="number"
                                   min="0"
+                                  step="any"
                                   data-testid={`input-item-rate-${index}`}
                                   {...field}
                                 />
