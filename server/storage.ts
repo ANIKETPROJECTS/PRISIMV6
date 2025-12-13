@@ -840,10 +840,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createChalan(chalan: InsertChalan, items: InsertChalanItem[]): Promise<Chalan> {
-    // Generate unique chalan ID in format CHL-000001
-    const lastChalan = await db.select({ id: chalans.id }).from(chalans).orderBy(desc(chalans.id)).limit(1);
-    const nextId = (lastChalan[0]?.id || 0) + 1;
-    const chalanNumber = `CHL-${String(nextId).padStart(6, '0')}`;
+    // Generate unique chalan ID in format CHYYMM-XX (e.g., CH2312-01)
+    const chalanDate = new Date(chalan.chalanDate);
+    const year = chalanDate.getFullYear().toString().slice(-2); // Last 2 digits of year
+    const month = String(chalanDate.getMonth() + 1).padStart(2, '0'); // 2-digit month
+    const prefix = `CH${year}${month}-`;
+    
+    // Find existing chalans for this month/year to get next sequence number
+    const existingChalans = await db
+      .select({ chalanNumber: chalans.chalanNumber })
+      .from(chalans)
+      .where(like(chalans.chalanNumber, `${prefix}%`));
+    
+    // Extract sequence numbers and find max
+    let maxSeq = 0;
+    for (const c of existingChalans) {
+      const seqPart = c.chalanNumber?.split('-')[1];
+      if (seqPart) {
+        const seq = parseInt(seqPart, 10);
+        if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    }
+    
+    const nextSeq = maxSeq + 1;
+    const chalanNumber = `${prefix}${String(nextSeq).padStart(2, '0')}`;
     
     // Ensure totalAmount is stored as string
     const totalAmountStr = typeof chalan.totalAmount === 'number' 
