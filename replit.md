@@ -211,3 +211,16 @@ npx tsx server/seed-demo.ts
 
 ### Login Credentials (Updated)
 - PRISM Studios: username="admin", PIN="admin123"
+
+### December 17, 2025 Updates - Admin Company Management & Hard Deletes
+- **Admin-Only Company Creation**: New POST /api/admin/companies endpoint allows admins to create companies with admin users atomically using database transactions
+- **Add Company UI**: User Management page now shows "Add Company" button below the Company dropdown (admin-only) with a modal form for company name, admin username, and password
+- **Hard Deletes**: All delete operations across the system now perform permanent deletion with referential integrity checks:
+  - Bookings: Checks for associated chalans before deletion, deletes booking logs in transaction
+  - Chalans: Deletes revisions, items, and chalan in transaction
+  - Customers: Checks for bookings, chalans, and projects references
+  - Projects: Checks for bookings and chalans references
+  - Rooms: Checks for booking references
+  - Editors: Checks for booking and leave references
+  - Users: Direct deletion with user module access cleanup
+- **Transaction Support**: Company creation, booking deletion, and chalan deletion wrapped in database transactions for atomicity
