@@ -68,11 +68,30 @@ export function ChalanInvoice({ chalan, onClose, showActions = true, viewOnly = 
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date</p>
                   <p className="text-sm font-medium mt-0.5">{format(new Date(chalan.chalanDate), "PPP")}</p>
                 </div>
+                {(chalan.fromTime || chalan.actualFromTime) && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Time</p>
+                    <div className="mt-0.5 space-y-0.5">
+                      {chalan.fromTime && (
+                        <p className="text-xs font-mono">
+                          Scheduled: {chalan.fromTime?.slice(0, 5)} - {chalan.toTime?.slice(0, 5)}
+                        </p>
+                      )}
+                      {chalan.actualFromTime && (
+                        <p className="text-xs font-mono text-green-600 dark:text-green-400">
+                          Actual: {chalan.actualFromTime?.slice(0, 5)} - {chalan.actualToTime?.slice(0, 5) || '--:--'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Status</p>
                   <div className="mt-0.5">
                     {chalan.isCancelled ? (
                       <Badge variant="destructive" className="text-xs">CANCELLED</Badge>
+                    ) : chalan.isRevised ? (
+                      <Badge variant="secondary" className="text-xs">REVISED</Badge>
                     ) : (
                       <Badge variant="default" className="text-xs">ACTIVE</Badge>
                     )}

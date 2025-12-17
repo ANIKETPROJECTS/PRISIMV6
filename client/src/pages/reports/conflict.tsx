@@ -241,11 +241,21 @@ function ConflictReportContent() {
                           <p className="text-sm text-muted-foreground">
                             {conflict.booking1.project?.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-mono">
-                              {conflict.booking1.fromTime?.slice(0, 5)} - {conflict.booking1.toTime?.slice(0, 5)}
-                            </span>
+                          <div className="mt-2 text-sm space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-mono">
+                                {conflict.booking1.fromTime?.slice(0, 5)} - {conflict.booking1.toTime?.slice(0, 5)}
+                              </span>
+                            </div>
+                            {(conflict.booking1.actualFromTime || conflict.booking1.actualToTime) && (
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <Clock className="h-4 w-4" />
+                                <span className="font-mono text-xs">
+                                  Actual: {conflict.booking1.actualFromTime?.slice(0, 5) || '--:--'} - {conflict.booking1.actualToTime?.slice(0, 5) || '--:--'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           {conflict.booking1.editor && (
                             <div className="flex items-center gap-2 mt-1 text-sm">
@@ -286,11 +296,21 @@ function ConflictReportContent() {
                           <p className="text-sm text-muted-foreground">
                             {conflict.booking2.project?.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-mono">
-                              {conflict.booking2.fromTime?.slice(0, 5)} - {conflict.booking2.toTime?.slice(0, 5)}
-                            </span>
+                          <div className="mt-2 text-sm space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-mono">
+                                {conflict.booking2.fromTime?.slice(0, 5)} - {conflict.booking2.toTime?.slice(0, 5)}
+                              </span>
+                            </div>
+                            {(conflict.booking2.actualFromTime || conflict.booking2.actualToTime) && (
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <Clock className="h-4 w-4" />
+                                <span className="font-mono text-xs">
+                                  Actual: {conflict.booking2.actualFromTime?.slice(0, 5) || '--:--'} - {conflict.booking2.actualToTime?.slice(0, 5) || '--:--'}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           {conflict.booking2.editor && (
                             <div className="flex items-center gap-2 mt-1 text-sm">

@@ -243,7 +243,12 @@ function EditorReportContent() {
                               <TableCell>{booking.project?.name}</TableCell>
                               <TableCell>{booking.room?.name}</TableCell>
                               <TableCell className="font-mono text-sm">
-                                {booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}
+                                <div>{booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}</div>
+                                {(booking.actualFromTime || booking.actualToTime) && (
+                                  <div className="text-xs text-green-600 dark:text-green-400">
+                                    Actual: {booking.actualFromTime?.slice(0, 5) || '--:--'} - {booking.actualToTime?.slice(0, 5) || '--:--'}
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell className="text-right font-mono">
                                 {booking.totalHours || 0}

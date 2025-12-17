@@ -943,12 +943,23 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
   app.post("/api/chalans/:id/revise", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { changes } = req.body;
-      if (!changes) {
-        return res.status(400).json({ message: "Changes description is required" });
+      const { items, ...revisionData } = req.body;
+      const userId = (req.user as any)?.id;
+      
+      // Validate items if provided
+      let validatedItems = undefined;
+      if (items && Array.isArray(items)) {
+        validatedItems = items.map((item: any) => {
+          const parsed = insertChalanItemSchema.safeParse(item);
+          if (!parsed.success) {
+            throw new Error(`Invalid item data: ${parsed.error.message}`);
+          }
+          return parsed.data;
+        });
       }
-      const revision = await storage.createChalanRevision(id, changes);
-      res.status(201).json(revision);
+      
+      const revisedChalan = await storage.reviseChalan(id, revisionData, validatedItems, userId);
+      res.status(201).json(revisedChalan);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

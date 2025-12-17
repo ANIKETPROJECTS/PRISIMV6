@@ -184,10 +184,21 @@ export function BookingCard({
             )}
           </div>
 
-          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-mono">
-              {booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}
-            </span>
+          <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground/70">Scheduled:</span>
+              <span className="font-mono">
+                {booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}
+              </span>
+            </div>
+            {(booking.actualFromTime || booking.actualToTime) && (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-green-600 dark:text-green-400">Actual:</span>
+                <span className="font-mono text-green-600 dark:text-green-400">
+                  {booking.actualFromTime?.slice(0, 5) || '--:--'} - {booking.actualToTime?.slice(0, 5) || '--:--'}
+                </span>
+              </div>
+            )}
           </div>
 
           {!compact && (
@@ -214,9 +225,17 @@ export function BookingCard({
             <p className="font-medium">{booking.customer?.name}</p>
             <p className="text-sm text-muted-foreground">{booking.project?.name}</p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4" />
-            <span>{booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}</span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4" />
+              <span>Scheduled: {booking.fromTime?.slice(0, 5)} - {booking.toTime?.slice(0, 5)}</span>
+            </div>
+            {(booking.actualFromTime || booking.actualToTime) && (
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <Clock className="h-4 w-4" />
+                <span>Actual: {booking.actualFromTime?.slice(0, 5) || '--:--'} - {booking.actualToTime?.slice(0, 5) || '--:--'}</span>
+              </div>
+            )}
           </div>
           {booking.room && (
             <div className="flex items-center gap-2 text-sm">

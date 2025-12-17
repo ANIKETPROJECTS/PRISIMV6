@@ -152,11 +152,19 @@ export const chalans = pgTable("chalans", {
   chalanNumber: text("chalan_number").notNull().unique(),
   customerId: integer("customer_id").references(() => customers.id).notNull(),
   projectId: integer("project_id").references(() => projects.id).notNull(),
-  bookingId: integer("booking_id").references(() => bookings.id).unique(),
+  bookingId: integer("booking_id").references(() => bookings.id),
   chalanDate: date("chalan_date").notNull(),
   totalAmount: text("total_amount").default("0"),
   isCancelled: boolean("is_cancelled").notNull().default(false),
   cancelReason: text("cancel_reason"),
+  isRevised: boolean("is_revised").notNull().default(false),
+  originalChalanId: integer("original_chalan_id"),
+  editorId: integer("editor_id").references(() => editors.id),
+  roomId: integer("room_id").references(() => rooms.id),
+  fromTime: time("from_time"),
+  toTime: time("to_time"),
+  actualFromTime: time("actual_from_time"),
+  actualToTime: time("actual_to_time"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -291,6 +299,18 @@ export const chalansRelations = relations(chalans, ({ one, many }) => ({
     fields: [chalans.projectId],
     references: [projects.id],
   }),
+  editor: one(editors, {
+    fields: [chalans.editorId],
+    references: [editors.id],
+  }),
+  room: one(rooms, {
+    fields: [chalans.roomId],
+    references: [rooms.id],
+  }),
+  booking: one(bookings, {
+    fields: [chalans.bookingId],
+    references: [bookings.id],
+  }),
   items: many(chalanItems),
   revisions: many(chalanRevisions),
 }));
@@ -388,6 +408,10 @@ export type ChalanWithItems = Chalan & {
   customer?: Customer;
   project?: Project;
   revisions?: ChalanRevision[];
+  editor?: Editor;
+  room?: Room;
+  booking?: Booking;
+  originalChalan?: Chalan;
 };
 
 // Login schema

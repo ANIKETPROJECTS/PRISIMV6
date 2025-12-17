@@ -120,9 +120,16 @@ function BookingReportContent() {
       key: "time",
       header: "Time",
       cell: (row) => (
-        <span className="font-mono text-sm">
-          {row.fromTime?.slice(0, 5)} - {row.toTime?.slice(0, 5)}
-        </span>
+        <div className="space-y-0.5">
+          <div className="font-mono text-sm">
+            {row.fromTime?.slice(0, 5)} - {row.toTime?.slice(0, 5)}
+          </div>
+          {(row.actualFromTime || row.actualToTime) && (
+            <div className="font-mono text-xs text-green-600 dark:text-green-400">
+              Actual: {row.actualFromTime?.slice(0, 5) || '--:--'} - {row.actualToTime?.slice(0, 5) || '--:--'}
+            </div>
+          )}
+        </div>
       ),
     },
     {

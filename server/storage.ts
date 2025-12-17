@@ -1043,6 +1043,148 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async reviseChalan(
+    originalChalanId: number, 
+    revisionData: {
+      editorId?: number;
+      roomId?: number;
+      fromTime?: string;
+      toTime?: string;
+      actualFromTime?: string;
+      actualToTime?: string;
+      totalAmount?: string;
+      chalanDate?: string;
+      notes?: string;
+    },
+    items?: InsertChalanItem[],
+    userId?: number
+  ): Promise<Chalan> {
+    const original = await this.getChalan(originalChalanId);
+    if (!original) {
+      throw new Error("Original chalan not found");
+    }
+    
+    if (original.isCancelled) {
+      throw new Error("Cannot revise a cancelled chalan");
+    }
+
+    if (original.isRevised) {
+      throw new Error("This chalan has already been revised. Please revise the latest version.");
+    }
+
+    // Generate new chalan number with R suffix
+    const baseNumber = original.chalanNumber.replace(/-R\d+$/, '');
+    const existingRevisions = await db
+      .select()
+      .from(chalans)
+      .where(sql`${chalans.chalanNumber} LIKE ${baseNumber + '-R%'}`);
+    const revisionCount = existingRevisions.length + 1;
+    const newChalanNumber = `${baseNumber}-R${revisionCount}`;
+
+    // Calculate total amount based on actual time if provided
+    let totalAmount = revisionData.totalAmount || original.totalAmount;
+    if (revisionData.actualFromTime && revisionData.actualToTime) {
+      const actualDuration = this.calculateBillingHours(
+        revisionData.fromTime || original.fromTime || '',
+        revisionData.toTime || original.toTime || '',
+        revisionData.actualFromTime,
+        revisionData.actualToTime,
+        0
+      );
+      
+      // Calculate total amount from items using actual duration
+      if (items && items.length > 0) {
+        const itemTotal = items.reduce((sum, item) => {
+          const rate = parseFloat(String(item.rate) || '0');
+          const quantity = parseFloat(String(item.quantity) || '1');
+          // Use actual duration for billing if quantity represents hours
+          const billableQty = quantity > 0 ? quantity : actualDuration;
+          return sum + (rate * billableQty);
+        }, 0);
+        totalAmount = itemTotal.toString();
+      } else if (original.items && original.items.length > 0) {
+        // Recalculate using original rate with actual duration
+        const firstItem = original.items[0];
+        const rate = parseFloat(String(firstItem.rate) || '0');
+        totalAmount = (rate * actualDuration).toString();
+      }
+    } else if (items && items.length > 0) {
+      // If no actual time, just sum item amounts
+      const itemTotal = items.reduce((sum, item) => {
+        const amount = parseFloat(String(item.amount) || '0');
+        return sum + amount;
+      }, 0);
+      totalAmount = itemTotal.toString();
+    }
+
+    return await db.transaction(async (tx) => {
+      // Mark original as revised
+      await tx
+        .update(chalans)
+        .set({ isRevised: true })
+        .where(eq(chalans.id, originalChalanId));
+
+      // Create new revised chalan
+      const [newChalan] = await tx
+        .insert(chalans)
+        .values({
+          chalanNumber: newChalanNumber,
+          customerId: original.customerId,
+          projectId: original.projectId,
+          bookingId: null, // Don't link to booking since original has it
+          chalanDate: revisionData.chalanDate || original.chalanDate,
+          totalAmount,
+          isCancelled: false,
+          isRevised: false,
+          originalChalanId: originalChalanId,
+          editorId: revisionData.editorId ?? original.editorId,
+          roomId: revisionData.roomId ?? original.roomId,
+          fromTime: revisionData.fromTime ?? original.fromTime,
+          toTime: revisionData.toTime ?? original.toTime,
+          actualFromTime: revisionData.actualFromTime ?? original.actualFromTime,
+          actualToTime: revisionData.actualToTime ?? original.actualToTime,
+          notes: revisionData.notes ?? original.notes,
+        })
+        .returning();
+
+      // Copy or create new items
+      if (items && items.length > 0) {
+        const itemsInsert: (typeof chalanItems.$inferInsert)[] = items.map(item => ({
+          ...item,
+          chalanId: newChalan.id,
+          quantity: typeof item.quantity === 'number' ? item.quantity.toString() : (item.quantity || '1'),
+          rate: typeof item.rate === 'number' ? item.rate.toString() : (item.rate || '0'),
+          amount: typeof item.amount === 'number' ? item.amount.toString() : (item.amount || '0'),
+        }));
+        await tx.insert(chalanItems).values(itemsInsert);
+      } else if (original.items && original.items.length > 0) {
+        const itemsInsert: (typeof chalanItems.$inferInsert)[] = original.items.map(item => ({
+          description: item.description,
+          chalanId: newChalan.id,
+          quantity: item.quantity || '1',
+          rate: item.rate || '0',
+          amount: item.amount || '0',
+        }));
+        await tx.insert(chalanItems).values(itemsInsert);
+      }
+
+      // Create revision log on original chalan
+      const existingRevisionsCount = await tx
+        .select()
+        .from(chalanRevisions)
+        .where(eq(chalanRevisions.chalanId, originalChalanId));
+      
+      await tx.insert(chalanRevisions).values({
+        chalanId: originalChalanId,
+        revisionNumber: existingRevisionsCount.length + 1,
+        changes: `Revised to ${newChalanNumber}. Changes: ${JSON.stringify(revisionData)}`,
+        revisedBy: userId || null,
+      });
+
+      return newChalan;
+    });
+  }
+
   // Reports
   async getConflicts(from: string, to: string, roomId?: number, editorId?: number): Promise<any[]> {
     const allBookings = await this.getBookings({ from, to, roomId, editorId });
