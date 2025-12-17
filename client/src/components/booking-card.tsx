@@ -1,4 +1,4 @@
-import { Clock, User, Building, MoreVertical, X, FileText, FilePlus, Eye, Lock } from "lucide-react";
+import { Clock, User, Building, MoreVertical, X, FileText, Eye, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,6 @@ interface BookingCardProps {
   onEdit?: (booking: BookingWithRelations) => void;
   onCancel?: (booking: BookingWithRelations) => void;
   onViewLogs?: (booking: BookingWithRelations) => void;
-  onCreateChalan?: (booking: BookingWithRelations) => void;
   onViewChalan?: (booking: BookingWithRelations) => void;
   hasChalan?: boolean;
   compact?: boolean;
@@ -39,7 +38,6 @@ export function BookingCard({
   onEdit,
   onCancel,
   onViewLogs,
-  onCreateChalan,
   onViewChalan,
   hasChalan = false,
   compact = false,
@@ -120,15 +118,6 @@ export function BookingCard({
                   <DropdownMenuItem 
                     onClick={(e) => {
                       e.stopPropagation();
-                      onEdit?.(booking);
-                    }}
-                    data-testid={`booking-edit-${booking.id}`}
-                  >
-                    Edit Booking
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={(e) => {
-                      e.stopPropagation();
                       onViewLogs?.(booking);
                     }}
                     data-testid={`booking-logs-${booking.id}`}
@@ -136,30 +125,16 @@ export function BookingCard({
                     <FileText className="h-4 w-4 mr-2" />
                     View Logs
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {hasChalan ? (
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewChalan?.(booking);
-                      }}
-                      data-testid={`booking-view-chalan-${booking.id}`}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Chalan
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCreateChalan?.(booking);
-                      }}
-                      data-testid={`booking-create-chalan-${booking.id}`}
-                    >
-                      <FilePlus className="h-4 w-4 mr-2" />
-                      Generate Chalan
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewChalan?.(booking);
+                    }}
+                    data-testid={`booking-view-chalan-${booking.id}`}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Chalan
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive"

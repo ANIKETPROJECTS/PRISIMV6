@@ -213,13 +213,27 @@ function BookingContent() {
     setBookingFormOpen(true);
   };
 
-  const handleCreateChalan = (booking: BookingWithRelations) => {
-    navigate(`/chalan?customerId=${booking.customerId}&projectId=${booking.projectId}`);
-    toast({ title: "Redirecting to create chalan", description: `Pre-filling with ${booking.customer?.name} - ${booking.project?.name}` });
-  };
-
-  const handleViewChalan = (booking: BookingWithRelations) => {
-    navigate(`/reports/chalan?customerId=${booking.customerId}&projectId=${booking.projectId}`);
+  const handleViewChalan = async (booking: BookingWithRelations) => {
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}/chalan`);
+      const data = await response.json();
+      
+      if (response.ok && data.chalan) {
+        navigate(`/chalan/revise?id=${data.chalan.id}`);
+      } else {
+        toast({
+          title: "Chalan not found",
+          description: "Chalan not created for this booking",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch chalan for this booking",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOpenDayView = (day: Date) => {
@@ -463,7 +477,6 @@ function BookingContent() {
                           onEdit={handleEditBooking}
                           onCancel={handleCancelBooking}
                           onViewLogs={handleViewLogs}
-                          onCreateChalan={handleCreateChalan}
                           onViewChalan={handleViewChalan}
                           hasChalan={hasChalan(booking.id)}
                           compact
