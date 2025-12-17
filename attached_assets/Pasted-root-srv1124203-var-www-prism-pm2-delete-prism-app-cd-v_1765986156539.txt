@@ -1,0 +1,63 @@
+root@srv1124203:/var/www/prism# pm2 delete prism-app
+cd /var/www/prism
+PORT=8080 pm2 start "npm run start" --name "prism-app"
+pm2 save
+pm2 status
+[PM2] Applying action deleteProcessId on app [prism-app](ids: [ 6 ])
+[PM2] [prism-app](6) ✓
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ ramaniV2            │ default     │ 1.0.0   │ cluster │ 124361   │ 50m    │ 0    │ online    │ 0%       │ 132.1mb  │ root     │ disabled │
+│ 1  │ trainwithwinston    │ default     │ 1.0.0   │ fork    │ 124366   │ 50m    │ 0    │ online    │ 0%       │ 3.4mb    │ root     │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 7  │ prism-app           │ default     │ N/A     │ fork    │ 127092   │ 0s     │ 0    │ online    │ 0%       │ 3.0mb    │ root     │ disabled │
+│ 0  │ ramaniV2            │ default     │ 1.0.0   │ cluster │ 124361   │ 50m    │ 0    │ online    │ 0%       │ 132.5mb  │ root     │ disabled │
+│ 1  │ trainwithwinston    │ default     │ 1.0.0   │ fork    │ 124366   │ 50m    │ 0    │ online    │ 0%       │ 3.4mb    │ root     │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 7  │ prism-app           │ default     │ N/A     │ fork    │ 127092   │ 0s     │ 0    │ online    │ 0%       │ 55.5mb   │ root     │ disabled │
+│ 0  │ ramaniV2            │ default     │ 1.0.0   │ cluster │ 124361   │ 50m    │ 0    │ online    │ 0%       │ 132.1mb  │ root     │ disabled │
+│ 1  │ trainwithwinston    │ default     │ 1.0.0   │ fork    │ 124366   │ 50m    │ 0    │ online    │ 0%       │ 3.4mb    │ root     │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@srv1124203:/var/www/prism# pm2 status
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 7  │ prism-app           │ default     │ N/A     │ fork    │ 127092   │ 5s     │ 0    │ online    │ 0%       │ 55.5mb   │ root     │ disabled │
+│ 0  │ ramaniV2            │ default     │ 1.0.0   │ cluster │ 124361   │ 51m    │ 0    │ online    │ 0%       │ 132.1mb  │ root     │ disabled │
+│ 1  │ trainwithwinston    │ default     │ 1.0.0   │ fork    │ 124366   │ 51m    │ 0    │ online    │ 0%       │ 3.4mb    │ root     │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@srv1124203:/var/www/prism# curl http://localhost:8080
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="description" content="PRISM - Professional Post-Production Management Software for film, TV, and media projects. Manage bookings, editors, rooms, and chalans efficiently." />
+    <meta name="keywords" content="post-production, film production, media management, booking system, studio management" />
+    <meta property="og:title" content="PRISM - Post-Production Management System" />
+    <meta property="og:description" content="Comprehensive post-production management software for film and media industry" />
+    <meta property="og:type" content="website" />
+    <title>PRISM - Post-Production Management System</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-wKEydh_9.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BwbHDfpA.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+root@srv1124203:/var/www/prism#
