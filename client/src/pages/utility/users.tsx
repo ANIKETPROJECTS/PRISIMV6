@@ -3,8 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Trash2, User, Eye, EyeOff, Mail, Phone, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, User, Eye, EyeOff, Mail, Phone, Lock, Building2 } from "lucide-react";
 import { usePermissions } from "@/lib/permissions";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -77,7 +78,14 @@ const editUserFormSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const addCompanyFormSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  adminUsername: z.string().min(1, "Admin username is required"),
+  adminPassword: z.string().min(4, "Password must be at least 4 characters"),
+});
+
 type UserFormValues = z.infer<typeof createUserFormSchema>;
+type AddCompanyFormValues = z.infer<typeof addCompanyFormSchema>;
 
 function getInitials(name: string | null | undefined, username: string): string {
   if (name && name.trim()) {
@@ -92,6 +100,7 @@ function getInitials(name: string | null | undefined, username: string): string 
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const permissions = usePermissions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
@@ -99,6 +108,10 @@ export default function UsersPage() {
   const [deletingUser, setDeletingUser] = useState<UserType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
+  const [addCompanyDialogOpen, setAddCompanyDialogOpen] = useState(false);
+  const [showCompanyPassword, setShowCompanyPassword] = useState(false);
+
+  const isAdmin = user?.role === "admin";
 
   if (!permissions.canView("users")) {
     return (
@@ -137,6 +150,44 @@ export default function UsersPage() {
       isActive: true,
     },
   });
+
+  const addCompanyForm = useForm<AddCompanyFormValues>({
+    resolver: zodResolver(addCompanyFormSchema),
+    defaultValues: {
+      companyName: "",
+      adminUsername: "",
+      adminPassword: "",
+    },
+  });
+
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: AddCompanyFormValues) => {
+      return apiRequest("POST", "/api/admin/companies", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Company created successfully with admin user" });
+      handleCloseAddCompanyDialog();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error creating company",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCloseAddCompanyDialog = () => {
+    setAddCompanyDialogOpen(false);
+    setShowCompanyPassword(false);
+    addCompanyForm.reset();
+  };
+
+  const onSubmitAddCompany = (data: AddCompanyFormValues) => {
+    createCompanyMutation.mutate(data);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: UserFormValues) => {
@@ -670,6 +721,19 @@ export default function UsersPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {isAdmin && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full"
+                          onClick={() => setAddCompanyDialogOpen(true)}
+                          data-testid="button-add-company"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Company
+                        </Button>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -736,6 +800,125 @@ export default function UsersPage() {
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addCompanyDialogOpen} onOpenChange={(open) => {
+        if (!open) handleCloseAddCompanyDialog();
+        else setAddCompanyDialogOpen(true);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Add New Company
+            </DialogTitle>
+            <DialogDescription>
+              Create a new company with an admin user. The admin user will have full access to manage this company.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...addCompanyForm}>
+            <form onSubmit={addCompanyForm.handleSubmit(onSubmitAddCompany)} className="space-y-4">
+              <FormField
+                control={addCompanyForm.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Enter company name"
+                          className="pl-10"
+                          data-testid="input-company-name"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addCompanyForm.control}
+                name="adminUsername"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Admin Username *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Enter admin username"
+                          className="pl-10"
+                          data-testid="input-admin-username"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={addCompanyForm.control}
+                name="adminPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Admin Password *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type={showCompanyPassword ? "text" : "password"}
+                          placeholder="Enter admin password"
+                          className="pl-10 pr-10"
+                          data-testid="input-admin-password"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowCompanyPassword(!showCompanyPassword)}
+                          data-testid="button-toggle-company-password"
+                        >
+                          {showCompanyPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseAddCompanyDialog}
+                  data-testid="button-cancel-add-company"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createCompanyMutation.isPending}
+                  data-testid="button-save-company"
+                >
+                  {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

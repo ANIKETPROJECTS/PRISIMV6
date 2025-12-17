@@ -398,3 +398,12 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// Create company with admin schema
+export const createCompanyWithAdminSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  adminUsername: z.string().min(1, "Admin username is required"),
+  adminPassword: z.string().min(4, "Admin password must be at least 4 characters"),
+});
+
+export type CreateCompanyWithAdmin = z.infer<typeof createCompanyWithAdminSchema>;

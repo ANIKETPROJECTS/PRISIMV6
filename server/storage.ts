@@ -45,13 +45,16 @@ import {
   type UserModuleAccess,
   type InsertUserModuleAccess,
   type Designation,
+  type CreateCompanyWithAdmin,
 } from "@shared/schema";
 
 export interface IStorage {
   // Companies
   getCompanies(): Promise<Company[]>;
   getCompany(id: number): Promise<Company | undefined>;
+  getCompanyByName(name: string): Promise<Company | undefined>;
   createCompany(company: InsertCompany): Promise<Company>;
+  createCompanyWithAdmin(data: CreateCompanyWithAdmin): Promise<{ company: Company; user: User }>;
   updateCompany(id: number, company: Partial<InsertCompany>): Promise<Company | undefined>;
   deleteCompany(id: number): Promise<boolean>;
 
@@ -101,6 +104,7 @@ export interface IStorage {
   createBooking(booking: InsertBooking, userId?: number): Promise<Booking>;
   updateBooking(id: number, booking: Partial<InsertBooking>, userId?: number): Promise<Booking | undefined>;
   cancelBooking(id: number, reason: string, userId?: number): Promise<Booking | undefined>;
+  deleteBooking(id: number): Promise<boolean>;
   getBookingLogs(bookingId: number): Promise<BookingLog[]>;
   checkBookingConflicts(booking: { roomId: number; editorId?: number; bookingDate: string; fromTime: string; toTime: string; excludeBookingId?: number }): Promise<{ hasConflict: boolean; conflicts: any[]; editorOnLeave: boolean; leaveInfo?: any }>;
   calculateBillingHours(fromTime: string, toTime: string, actualFromTime?: string, actualToTime?: string, breakHours?: number): number;
@@ -117,6 +121,7 @@ export interface IStorage {
   getChalan(id: number): Promise<any | undefined>;
   createChalan(chalan: InsertChalan, items: InsertChalanItem[]): Promise<Chalan>;
   cancelChalan(id: number, reason: string): Promise<Chalan | undefined>;
+  deleteChalan(id: number): Promise<boolean>;
   updateChalanStatus(id: number, isCancelled: boolean): Promise<Chalan | undefined>;
   getChalanRevisions(chalanId: number): Promise<ChalanRevision[]>;
   createChalanRevision(chalanId: number, changes: string, userId?: number): Promise<ChalanRevision>;
@@ -162,8 +167,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCompany(id: number): Promise<boolean> {
-    const result = await db.delete(companies).where(eq(companies.id, id));
+    const [referencedUser] = await db.select({ id: users.id }).from(users).where(eq(users.companyId, id)).limit(1);
+    if (referencedUser) {
+      throw new Error("Cannot delete company: it has associated users");
+    }
+    await db.delete(companies).where(eq(companies.id, id));
     return true;
+  }
+
+  async getCompanyByName(name: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.name, name));
+    return company;
+  }
+
+  async createCompanyWithAdmin(data: CreateCompanyWithAdmin): Promise<{ company: Company; user: User }> {
+    const existingCompany = await this.getCompanyByName(data.companyName);
+    if (existingCompany) {
+      throw new Error("A company with this name already exists");
+    }
+
+    // Use transaction for atomicity
+    return await db.transaction(async (tx) => {
+      const [company] = await tx.insert(companies).values({ name: data.companyName }).returning();
+      
+      const [user] = await tx.insert(users).values({
+        username: data.adminUsername,
+        password: data.adminPassword,
+        securityPin: data.adminPassword,
+        role: "admin",
+        companyId: company.id,
+        isActive: true,
+      }).returning();
+
+      return { company, user };
+    });
   }
 
   // Users
@@ -641,6 +678,20 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async deleteBooking(id: number): Promise<boolean> {
+    const [referencedChalan] = await db.select({ id: chalans.id }).from(chalans).where(eq(chalans.bookingId, id)).limit(1);
+    if (referencedChalan) {
+      throw new Error("Cannot delete booking: it has an associated chalan");
+    }
+    
+    // Use transaction for atomicity
+    await db.transaction(async (tx) => {
+      await tx.delete(bookingLogs).where(eq(bookingLogs.bookingId, id));
+      await tx.delete(bookings).where(eq(bookings.id, id));
+    });
+    return true;
+  }
+
   async getBookingLogs(bookingId: number): Promise<BookingLog[]> {
     return db
       .select()
@@ -943,6 +994,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chalans.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteChalan(id: number): Promise<boolean> {
+    // Use transaction for atomicity
+    await db.transaction(async (tx) => {
+      await tx.delete(chalanRevisions).where(eq(chalanRevisions.chalanId, id));
+      await tx.delete(chalanItems).where(eq(chalanItems.chalanId, id));
+      await tx.delete(chalans).where(eq(chalans.id, id));
+    });
+    return true;
   }
 
   async updateChalanStatus(id: number, isCancelled: boolean): Promise<Chalan | undefined> {

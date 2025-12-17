@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertProjectSchema, insertRoomSchema, insertEditorSchema, insertBookingSchema, insertEditorLeaveSchema, insertChalanSchema, insertChalanItemSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import { insertCustomerSchema, insertProjectSchema, insertRoomSchema, insertEditorSchema, insertBookingSchema, insertEditorLeaveSchema, insertChalanSchema, insertChalanItemSchema, insertUserSchema, loginSchema, createCompanyWithAdminSchema } from "@shared/schema";
 import { z } from "zod";
 
 type UserRole = "admin" | "gst" | "non_gst" | "custom";
@@ -275,6 +275,21 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
       const company = await storage.createCompany(req.body);
       res.status(201).json(company);
     } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/companies", requireRole("admin"), async (req, res) => {
+    try {
+      const data = createCompanyWithAdminSchema.parse(req.body);
+      const result = await storage.createCompanyWithAdmin(data);
+      const { password, securityPin, ...userWithoutSensitive } = result.user;
+      res.status(201).json({ company: result.company, user: userWithoutSensitive });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        const firstError = error.errors[0];
+        return res.status(400).json({ message: firstError.message });
+      }
       res.status(400).json({ message: error.message });
     }
   });
@@ -743,6 +758,16 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
     }
   });
 
+  app.delete("/api/bookings/:id", requirePermission("booking", "canDelete"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteBooking(id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Editor Leaves routes
   app.get("/api/editor-leaves", requirePermission("leaves", "canView"), async (req, res) => {
     try {
@@ -948,7 +973,7 @@ export async function registerRoutes(server: Server, app: Express): Promise<void
   app.delete("/api/chalans/:id", requirePermission("chalan", "canDelete"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      await storage.cancelChalan(id, "Deleted");
+      await storage.deleteChalan(id);
       res.status(204).send();
     } catch (error: any) {
       res.status(400).json({ message: error.message });
