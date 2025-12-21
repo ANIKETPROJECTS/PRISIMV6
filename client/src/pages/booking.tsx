@@ -213,27 +213,8 @@ function BookingContent() {
     setBookingFormOpen(true);
   };
 
-  const handleViewChalan = async (booking: BookingWithRelations) => {
-    try {
-      const response = await fetch(`/api/bookings/${booking.id}/chalan`);
-      const data = await response.json();
-      
-      if (response.ok && data.chalan) {
-        navigate(`/chalan`);
-      } else {
-        toast({
-          title: "Chalan not found",
-          description: "Chalan not created for this booking",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch chalan for this booking",
-        variant: "destructive",
-      });
-    }
+  const handleViewChalan = (booking: BookingWithRelations) => {
+    navigate(`/chalan`);
   };
 
   const handleOpenDayView = (day: Date) => {
